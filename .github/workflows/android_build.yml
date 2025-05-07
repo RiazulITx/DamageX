@@ -26,3 +26,14 @@ jobs:
           name: app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+steps:
+  - uses: actions/checkout@v4
+  
+  # গ্রাডল র‍্যাপার জেনারেট করুন (যদি না থাকে)
+  - name: Generate gradlew
+    run: |
+      gradle wrapper || echo "Gradle not installed, will use existing wrapper"
+      
+  # gradlew এক্সিকিউটেবল করুন
+  - name: Make gradlew executable
+    run: chmod +x ./gradlew
