@@ -8,40 +8,37 @@ on:
 
 jobs:
   build:
-    name: Build and Upload APK
+    name: Build APK
     runs-on: ubuntu-latest
     
     steps:
-    # 1. কোড চেকআউট
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
       
-    # 2. জাভা সেটআপ
+    # local.properties ফাইল তৈরি করুন (যদি না থাকে)
+    - name: Create local.properties
+      working-directory: ./android
+      run: |
+        [ -f "local.properties" ] || echo "sdk.dir=$ANDROID_HOME" > local.properties
+        
     - name: Set up JDK 17
       uses: actions/setup-java@v3
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: 'gradle'
-    
-    # 3. গ্রাডল র‍্যাপার তৈরি (যদি না থাকে)
-    - name: Initialize Gradle Wrapper
-      run: |
-        cd android
-        [ -f "gradlew" ] || gradle wrapper --gradle-version 8.0
-        chmod +x gradlew
-        ./gradlew --version
         
-    # 4. APK বিল্ড
-    - name: Build Debug APK
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      
+    - name: Make gradlew executable
+      working-directory: ./android
+      run: chmod +x gradlew
+        
+    - name: Build APK
       working-directory: ./android
       run: ./gradlew assembleDebug --stacktrace
         
-    # 5. APK আপলোড (ফিক্সড ভার্সন)
-    - name: Upload APK Artifact
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: app-debug
         path: android/app/build/outputs/apk/debug/app-debug.apk
-        if-no-files-found: error
-        retention-days: 5
