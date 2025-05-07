@@ -1,4 +1,4 @@
-name: Android CI/CD Pipeline
+name: Flutter Android CI/CD
 
 on:
   push:
@@ -15,12 +15,12 @@ jobs:
     # ১. কোড চেকআউট
     - uses: actions/checkout@v4
     
-    # ২. Android SDK সেটআপ
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
+    # ২. Fl SDK সেটআপ
+    - name: Install Flutter
+      uses: subosito/flutter-action@v2
       with:
-        ndk-version: '25.1.8937393'
-        cmake-version: '3.22.1'
+        flutter-version: '3.19.5'  # আপনার Flutter ভার্সন দিন
+        channel: 'stable'
     
     # ৩. JDK সেটআপ
     - name: Set up JDK 17
@@ -29,46 +29,39 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
     
-    # ৪. local.properties ফাইল তৈরি
-    - name: Create local.properties
+    # ৪. local.properties ফাইল তৈরি (Flutter SDK পাথ সহ)
+    - name: Setup local.properties
       working-directory: ./android
       run: |
-        echo "Creating local.properties..."
+        echo "Creating local.properties with Flutter SDK path..."
         echo "sdk.dir=$ANDROID_HOME" > local.properties
+        echo "flutter.sdk=${{ github.workspace }}/flutter" >> local.properties
         echo "ndk.dir=$ANDROID_HOME/ndk/25.1.8937393" >> local.properties
-        echo "Created local.properties with following content:"
+        echo "Generated local.properties content:"
         cat local.properties
     
-    # ৫. গ্রাডল র‍্যাপার ইনিশিয়ালাইজেশন
-    - name: Initialize Gradle Wrapper
+    # ৫. গ্রাডল র‍্যাপার সেটআপ
+    - name: Setup Gradle Wrapper
       working-directory: ./android
       run: |
-        # গ্রাডল র‍্যাপার ফাইল চেক
-        if [ ! -f "gradlew" ] || [ ! -d "gradle/wrapper" ]; then
-          echo "Generating Gradle wrapper..."
-          gradle wrapper --gradle-version 8.4 --distribution-type bin
-          
-          # পারমিশন সেট
-          chmod +x gradlew
-          chmod +x gradlew.bat
-        else
-          echo "Gradle wrapper already exists"
-        fi
-        
-        # ভার্সন চেক
+        [ -f "gradlew" ] || gradle wrapper --gradle-version 8.4
+        chmod +x gradlew
         ./gradlew --version
     
-    # ৬. অ্যাপ বিল্ড
+    # ৬. Flutter dependencies ইনস্টল
+    - name: Get Flutter packages
+      run: flutter pub get
+    
+    # ৭. Android বিল্ড
     - name: Build APK
       working-directory: ./android
       run: |
         ./gradlew assembleDebug --stacktrace --info
     
-    # ৭. APK আপলোড
+    # ৮. APK আপলোড
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: app-debug
         path: android/app/build/outputs/apk/debug/app-debug.apk
         if-no-files-found: error
-        retention-days: 5
