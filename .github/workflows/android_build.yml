@@ -1,28 +1,54 @@
-name: Android CI
+name: Android CI/CD
 
-on: [push]
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
 
 jobs:
   build:
+    name: Build APK
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-
-      - name: Build APK
-        run: ./gradlew assembleDebug
-
-      - name: Upload APK (Fixed)
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
+    # ১. কোড চেকআউট করুন
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    # ২. জাভা সেটআপ করুন
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: 'gradle'
+    
+    # ৩. গ্রাডল র‍্যাপার তৈরি করুন (যদি না থাকে)
+    - name: Setup Gradle Wrapper
+      run: |
+        # প্রজেক্ট ডিরেক্টরিতে যান (প্রয়োজন অনুযায়ী পরিবর্তন করুন)
+        cd android
+        
+        # গ্রাডল র‍্যাপার জেনারেট করুন
+        gradle wrapper --gradle-version 8.0
+        
+        # পারমিশন সেট করুন
+        chmod +x gradlew
+        
+        # ভার্সন চেক করুন
+        ./gradlew --version
+        
+    # ৪. অ্যাপ বিল্ড করুন
+    - name: Build APK
+      working-directory: ./android  # প্রজেক্ট ডিরেক্টরিতে যান
+      run: |
+        ./gradlew assembleDebug --stacktrace
+        
+    # ৫. APK আপলোড করুন
+    - name: Upload APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: app-debug
+        path: android/app/build/outputs/apk/debug/app-debug.apk
+        if-no-files-found: error
