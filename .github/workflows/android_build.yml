@@ -1,67 +1,81 @@
-name: Flutter Android CI/CD
+name: Flutter Android Build
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
 
 jobs:
   build:
     name: Build APK
     runs-on: ubuntu-latest
-    
+    env:
+      FLUTTER_HOME: ${{ github.workspace }}/flutter
+      ANDROID_HOME: ${{ github.workspace }}/android-sdk
+
     steps:
-    # ১. কোড চেকআউট
+    # 1. কোড চেকআউট
     - uses: actions/checkout@v4
-    
-    # ২. Fl SDK সেটআপ
+      with:
+        submodules: recursive  # Flutter submodules সহ চেকআউট
+
+    # 2. Flutter সেটআপ
     - name: Install Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.19.5'  # আপনার Flutter ভার্সন দিন
+        flutter-version: '3.19.5'
         channel: 'stable'
-    
-    # ৩. JDK সেটআপ
+
+    # 3. Android SDK সেটআপ
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
+    # 4. JDK সেটআপ
     - name: Set up JDK 17
       uses: actions/setup-java@v3
       with:
         java-version: '17'
         distribution: 'temurin'
-    
-    # ৪. local.properties ফাইল তৈরি (Flutter SDK পাথ সহ)
-    - name: Setup local.properties
+
+    # 5. Flutter পাথ সেটআপ
+    - name: Configure Flutter Path
+      run: |
+        echo "FLUTTER_ROOT=$FLUTTER_HOME" >> $GITHUB_ENV
+        echo "$FLUTTER_HOME/bin" >> $GITHUB_PATH
+
+    # 6. local.properties ফাইল তৈরি
+    - name: Create local.properties
       working-directory: ./android
       run: |
-        echo "Creating local.properties with Flutter SDK path..."
         echo "sdk.dir=$ANDROID_HOME" > local.properties
-        echo "flutter.sdk=${{ github.workspace }}/flutter" >> local.properties
+        echo "flutter.sdk=$FLUTTER_HOME" >> local.properties
         echo "ndk.dir=$ANDROID_HOME/ndk/25.1.8937393" >> local.properties
-        echo "Generated local.properties content:"
         cat local.properties
-    
-    # ৫. গ্রাডল র‍্যাপার সেটআপ
-    - name: Setup Gradle Wrapper
-      working-directory: ./android
-      run: |
-        [ -f "gradlew" ] || gradle wrapper --gradle-version 8.4
-        chmod +x gradlew
-        ./gradlew --version
-    
-    # ৬. Flutter dependencies ইনস্টল
+
+    # 7. Flutter dependencies ইনস্টল
     - name: Get Flutter packages
-      run: flutter pub get
-    
-    # ৭. Android বিল্ড
-    - name: Build APK
+      run: |
+        flutter pub get
+        flutter precache --android
+
+    # 8. গ্রাডল র‍্যাপার সেটআপ
+    - name: Setup Gradle
       working-directory: ./android
       run: |
-        ./gradlew assembleDebug --stacktrace --info
-    
-    # ৮. APK আপলোড
+        ./gradlew wrapper --gradle-version 8.4
+        chmod +x gradlew
+
+    # 9. Flutter build অপ্টিমাইজেশন
+    - name: Run Flutter build
+      run: |
+        flutter build apk --debug --verbose
+        ls -la build/app/outputs/flutter-apk/
+
+    # 10. APK আপলোড
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: app-debug
-        path: android/app/build/outputs/apk/debug/app-debug.apk
+        path: build/app/outputs/flutter-apk/app-debug.apk
         if-no-files-found: error
