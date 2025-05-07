@@ -1,0 +1,12 @@
+steps:
+  - uses: actions/checkout@v4
+  
+  # গ্রাডল র‍্যাপার জেনারেট করুন (যদি না থাকে)
+  - name: Setup Gradle Wrapper
+    run: |
+      [ -f ./gradlew ] || gradle wrapper --gradle-version 7.4
+      chmod +x ./gradlew
+      
+  # বাকি স্টেপস
+  - name: Build with Gradle
+    run: ./gradlew assembleDebug
