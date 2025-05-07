@@ -12,55 +12,59 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    # ১. কোড চেকআউট করুন
+    # ১. কোড চেকআউট
     - uses: actions/checkout@v4
     
-    # ২. প্রয়োজনীয় টুলস সেটআপ করুন
+    # ২. Android SDK সেটআপ
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      with:
+        ndk-version: '25.1.8937393'
+        cmake-version: '3.22.1'
+    
+    # ৩. JDK সেটআপ
     - name: Set up JDK 17
       uses: actions/setup-java@v3
       with:
         java-version: '17'
         distribution: 'temurin'
     
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-    
-    # ৩. গ্রাডল র‍্যাপার সিস্টেম তৈরি করুন (যদি না থাকে)
-    - name: Initialize Gradle Wrapper
-      working-directory: ./android
-      run: |
-        # গ্রাডল র‍্যাপার ফাইলগুলো আছে কিনা চেক করুন
-        if [ ! -f "gradlew" ] || [ ! -d "gradle/wrapper" ]; then
-          echo "Creating Gradle wrapper files..."
-          gradle wrapper --gradle-version 8.4 --distribution-type bin
-          
-          # প্রয়োজন হলে ফাইল পারমিশন সেট করুন
-          chmod +x gradlew
-          chmod +x gradlew.bat
-        else
-          echo "Gradle wrapper files already exist"
-        fi
-        
-        # ফাইল লিস্ট দেখুন (ডিবাগিং জন্য)
-        ls -la
-        ls -la gradle/wrapper/
-    
-    # ৪. local.properties ফাইল তৈরি করুন
+    # ৪. local.properties ফাইল তৈরি
     - name: Create local.properties
       working-directory: ./android
       run: |
         echo "Creating local.properties..."
         echo "sdk.dir=$ANDROID_HOME" > local.properties
         echo "ndk.dir=$ANDROID_HOME/ndk/25.1.8937393" >> local.properties
+        echo "Created local.properties with following content:"
         cat local.properties
     
-    # ৫. অ্যাপ বিল্ড করুন
+    # ৫. গ্রাডল র‍্যাপার ইনিশিয়ালাইজেশন
+    - name: Initialize Gradle Wrapper
+      working-directory: ./android
+      run: |
+        # গ্রাডল র‍্যাপার ফাইল চেক
+        if [ ! -f "gradlew" ] || [ ! -d "gradle/wrapper" ]; then
+          echo "Generating Gradle wrapper..."
+          gradle wrapper --gradle-version 8.4 --distribution-type bin
+          
+          # পারমিশন সেট
+          chmod +x gradlew
+          chmod +x gradlew.bat
+        else
+          echo "Gradle wrapper already exists"
+        fi
+        
+        # ভার্সন চেক
+        ./gradlew --version
+    
+    # ৬. অ্যাপ বিল্ড
     - name: Build APK
       working-directory: ./android
       run: |
         ./gradlew assembleDebug --stacktrace --info
     
-    # ৬. APK আপলোড করুন
+    # ৭. APK আপলোড
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
