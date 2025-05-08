@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      FLUTTER_VERSION: '3.22.1'  # Dart 3.5.0+ সমর্থন করে
+      FLUTTER_VERSION: '3.5.0'  # Dart 3.5.0+ সমর্থন করে
 
     steps:
     - uses: actions/checkout@v4
