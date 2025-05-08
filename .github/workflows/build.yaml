@@ -9,7 +9,7 @@ on:
     branches: [main, master]
 
 env:
-  FLUTTER_VERSION: '3.22.1'  # Dart 3.5.0+ সমর্থন করে
+  FLUTTER_VERSION: '5.0.0'  # Dart 3.5.0+ সমর্থন করে
   NDK_VERSION: '25.1.8937393'
   IS_STABLE: ${{ !contains(github.ref, '-') }}
 
