@@ -3,7 +3,7 @@ description: A multi-platform ErrorX BDIX client based on ClashMeta, simple and 
 publish_to: 'none'
 version: 1.0.0+202504081
 environment:
-  sdk: '>=3.1.0 <4.0.0'
+  sdk: '>=3.5.0 <4.0.0'
 
 dependencies:
   flutter:
