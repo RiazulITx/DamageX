@@ -3,29 +3,17 @@ name: Flutter Android Build
 on:
   push:
     branches: [main, master]
-    tags:
-      - 'v*'
   pull_request:
     branches: [main, master]
-
-env:
-  FLUTTER_VERSION: '5.0.0'  # Dart 3.5.0+ সমর্থন করে
-  NDK_VERSION: '25.1.8937393'
-  IS_STABLE: ${{ !contains(github.ref, '-') }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      FLUTTER_VERSION: '3.22.1'  # Dart 3.5.0+ সমর্থন করে
+
     steps:
     - uses: actions/checkout@v4
-      with:
-        submodules: recursive
-
-    - name: Setup Java
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'zulu'
-        java-version: '17'
 
     - name: Install Flutter
       uses: subosito/flutter-action@v2
@@ -39,69 +27,10 @@ jobs:
         dart --version
         flutter doctor -v
 
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-
-    - name: Setup NDK
-      uses: android-actions/setup-ndk@v2
-      with:
-        ndk-version: ${{ env.NDK_VERSION }}
-
-    - name: Create local.properties
-      working-directory: ./android
-      run: |
-        echo "sdk.dir=$ANDROID_HOME" > local.properties
-        echo "flutter.sdk=$FLUTTER_HOME" >> local.properties
-        echo "ndk.dir=$ANDROID_HOME/ndk/${{ env.NDK_VERSION }}" >> local.properties
-        cat local.properties
-
-    - name: Configure Keystore
-      working-directory: ./android
-      run: |
-        echo "${{ secrets.KEYSTORE }}" | base64 --decode > app/keystore.jks
-        echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> local.properties
-        echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> local.properties
-        echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> local.properties
-
-    - name: Cache Flutter dependencies
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.pub-cache
-          $FLUTTER_HOME/.pub-cache
-        key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}
-
     - name: Get Dependencies
       run: |
         flutter pub upgrade
         flutter pub get
 
     - name: Build APK
-      run: |
-        flutter build apk --release --verbose
-        ls -la build/app/outputs/flutter-apk/
-
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: app-release
-        path: build/app/outputs/flutter-apk/app-release.apk
-        if-no-files-found: error
-        retention-days: 5
-
-  release:
-    needs: build
-    if: ${{ env.IS_STABLE == 'true' }}
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-
-    - name: Download Artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: app-release
-
-    - name: Create Release
-      uses: softprops/action-gh-release@
+      run: flutter build apk --release
